@@ -15,4 +15,4 @@ RUN chown -R 1000:1000 /app
 
 WORKDIR /app
 
-CMD ["bin/altcha", "run"]
+CMD ["/app/altcha", "run"]
