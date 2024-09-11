@@ -16,6 +16,9 @@ type Client struct {
 }
 
 func NewClient(hmacKey string, maxNumber int64, algorithm string, salt string, expire string, checkExpire bool) *Client {
+	if len(hmacKey) == 0 {
+		panic("HMAC key not found in env")
+	}
 	return &Client {
 		hmacKey:		hmacKey,
 		maxNumber:		maxNumber,
