@@ -4,20 +4,26 @@ Serveur de génération de challenges altcha et de validation de la solution
 
 ## Utilisation
 
-### Depuis le binaire
+### Lancer le serveur
+Depuis le binaire
 ```sh
 $ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha run
 ```
 
-### Depuis l'image docker
+Depuis l'image docker
 ```sh
-$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" reg.cadoles.com/cadoles/altcha
+$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" -p 3333:3333 reg.cadoles.com/cadoles/altcha
 ```
 
-### Depuis les sources
+Depuis les sources
 ```sh
 $ ALTCHA_HMAC_KEY="CLÉ HMAC" go run ./cmd/altcha run
 ```
+
+Une fois le serveur lancé, se rendre sur localhost:3333/request pour effectuer une demande de challenge.
+Publier la solution sur localhost:3333/verify ou localhost:3333/verify-spam-filter
+
+Les détails sur le fonctionnement sont à retrouver sur la documentation d'altcha : https://altcha.org/fr/docs/get-started/
 
 ### Autres commandes
 Générer un challenge
