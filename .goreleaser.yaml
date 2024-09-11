@@ -1,0 +1,10 @@
+project_name: altcha
+builds:
+  - id: altcha
+    main: ./cmd/altcha
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - "386"

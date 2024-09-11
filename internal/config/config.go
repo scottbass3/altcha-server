@@ -1,0 +1,11 @@
+package config
+
+type Config struct {
+	Port 		string	`env:"ALTCHA_PORT" envDefault:"3333"`
+	HmacKey		string	`env:"ALTCHA_HMAC_KEY"`
+	MaxNumber	int64	`env:"ALTCHA_MAX_NUMBER" envDefault:"1000000"`
+	Algorithm	string	`env:"ALTCHA_ALGORITHM" envDefault:"SHA-256"`
+	Salt		string	`env:"ALTCHA_SALT"`
+	Expire		string	`env:"ALTCHA_EXPIRE" envDefault:"600"`
+	CheckExpire	bool	`env:"ALTCHA_CHECK_EXPIRE" envDefault:"1"`
+}
