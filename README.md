@@ -44,6 +44,7 @@ $ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha verify [CHALLENGE] [SALT] [SIGNATURE] [
 ## Variables d'environement
 | Nom                 | Description                                                                  | Valeur par défaut        | Requis |
 |---------------------|------------------------------------------------------------------------------|--------------------------|--------|
+| ALTCHA_BASE_URL     | Url de base du service                                                       |                          | Non    |
 | ALTCHA_PORT         | Port d'écoute du serveur                                                     | 3333                     | Non    |
 | ALTCHA_HMAC_KEY     | Clé d'encodage des signatures                                                |                          | Oui    |
 | ALTCHA_MAX_NUMBER   | Nombre d'itération maximum pour résoudre le challenge (défini la difficulté) | 1000000                  | Non    |

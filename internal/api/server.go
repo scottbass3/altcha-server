@@ -17,6 +17,7 @@ import (
 )
 
 type Server struct {
+	baseUrl	string
 	port	string
 	client	client.Client
 }
@@ -32,9 +33,9 @@ func (s *Server) Run(ctx context.Context) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("root."))
 	})
-	r.Get("/request", s.requestHandler)
-	r.Get("/verify", s.submitHandler)
-	r.Get("/verify-spam-filter", s.submitSpamFilterHandler)
+	r.Get(s.baseUrl+"/request", s.requestHandler)
+	r.Get(s.baseUrl+"/verify", s.submitHandler)
+	r.Get(s.baseUrl+"/verify-spam-filter", s.submitSpamFilterHandler)
 	
 	logger.Info(ctx, "altcha server listening on port "+s.port)
 	if err := http.ListenAndServe(":"+s.port, r); err != nil {
@@ -171,6 +172,7 @@ func NewServer(cfg config.Config) *Server {
 	client := *client.NewClient(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.Expire, cfg.CheckExpire)
 
 	return &Server {
+		baseUrl: cfg.BaseUrl,
 		port:	cfg.Port,
 		client:	client,
 	}
