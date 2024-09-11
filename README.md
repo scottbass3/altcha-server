@@ -2,14 +2,40 @@
 
 Serveur de génération de challenges altcha et de validation de la solution
 
-# Utilisation
+## Utilisation
 
-Lancer le serveur
-```
-altcha run
+### Depuis le binaire
+```sh
+$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha run
 ```
 
-# Variables d'environement
+### Depuis l'image docker
+```sh
+$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" reg.cadoles.com/cadoles/altcha
+```
+
+### Depuis les sources
+```sh
+$ ALTCHA_HMAC_KEY="CLÉ HMAC" go run ./cmd/altcha run
+```
+
+### Autres commandes
+Générer un challenge
+```sh
+$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha generate
+```
+
+Résoudre un challenge
+```sh
+$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/atlcha solve [CHALLENGE] [SALT]
+```
+
+Vérifier une solution
+```sh
+$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha verify [CHALLENGE] [SALT] [SIGNATURE] [SOLUTION]
+```
+
+## Variables d'environement
 | Nom                 | Description                                                                  | Valeur par défaut        | Requis |
 |---------------------|------------------------------------------------------------------------------|--------------------------|--------|
 | ALTCHA_PORT         | Port d'écoute du serveur                                                     | 3333                     | Non    |
@@ -19,3 +45,18 @@ altcha run
 | ALTCHA_SALT         | Forcer le salt du challenge                                                  | *Généré automatiquement* | Non    |
 | ALTCHA_EXPIRE       | Temps avant expiration du challenge (en secondes)                            | 600                      | Non    |
 | ALTCHA_CHECK_EXPIRE | Vérifier si le challenge à expiré                                            | 1                        | Non    |
+
+## Construire le binaire
+```sh
+$ make build
+```
+
+## Construire l'image docker
+```sh
+$ make build-image
+```
+
+## Publier l'image docker
+```sh
+$ make release-image
+```
