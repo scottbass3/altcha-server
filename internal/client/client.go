@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"time"
 
 	"github.com/altcha-org/altcha-lib-go"
@@ -11,13 +12,13 @@ type Client struct {
 	maxNumber	int64
 	algorithm	altcha.Algorithm
 	salt		string
-	expire		string
+	expire		time.Duration
 	checkExpire	bool
 }
 
-func NewClient(hmacKey string, maxNumber int64, algorithm string, salt string, expire string, checkExpire bool) *Client {
+func New(hmacKey string, maxNumber int64, algorithm string, salt string, expire time.Duration, checkExpire bool) (*Client, error) {
 	if len(hmacKey) == 0 {
-		panic("HMAC key not found in env")
+		return &Client{}, errors.New("HMAC key not found")
 	}
 	return &Client {
 		hmacKey:		hmacKey,
@@ -26,12 +27,11 @@ func NewClient(hmacKey string, maxNumber int64, algorithm string, salt string, e
 		salt:			salt,
 		expire:			expire,
 		checkExpire:	checkExpire,
-	}
+	}, nil
 }
 
 func (c *Client) Generate() (altcha.Challenge, error) {
-	expirationDuration, _ := time.ParseDuration(c.expire+"s")
-	expiration := time.Now().Add(expirationDuration)
+	expiration := time.Now().Add(c.expire)
 	
 	options := altcha.ChallengeOptions{
 		HMACKey:	c.hmacKey,

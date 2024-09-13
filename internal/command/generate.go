@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"time"
 
 	"forge.cadoles.com/cadoles/altcha-server/internal/client"
 	"forge.cadoles.com/cadoles/altcha-server/internal/command/common"
@@ -21,12 +22,23 @@ func GenerateCommand() *cli.Command {
 		Action:	func(ctx *cli.Context) error {
 			cfg := config.Config{}
 			if err := env.Parse(&cfg); err != nil {
-				fmt.Printf("%+v\n", err)
+				logger.Error(ctx.Context, err.Error())
+				return err
 			}
 			
-			c := client.NewClient(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.Expire, cfg.CheckExpire)
-			
-			challenge, err := c.Generate()
+			expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+			if err != nil {
+				logger.Error(ctx.Context, err.Error())
+				return err
+			}
+
+			client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expirationDuration, cfg.CheckExpire)
+			if err != nil {
+				logger.Error(ctx.Context, err.Error())
+				return err
+			}
+
+			challenge, err := client.Generate()
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err

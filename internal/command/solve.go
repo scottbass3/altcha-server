@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"time"
 
 	"forge.cadoles.com/cadoles/altcha-server/internal/client"
 	"forge.cadoles.com/cadoles/altcha-server/internal/command/common"
@@ -23,16 +24,26 @@ func SolveCommand() *cli.Command {
 		Action:	func(ctx *cli.Context) error {
 			cfg := config.Config{}
 			if err := env.Parse(&cfg); err != nil {
-				fmt.Printf("%+v\n", err)
+				logger.Error(ctx.Context, err.Error())
+				return err
 			}
 
 			challenge := ctx.Args().Get(0)
 			salt := ctx.Args().Get(1)
 
-			c := client.NewClient(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, salt, cfg.Expire, cfg.CheckExpire)
+			expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+			if err != nil {
+				logger.Error(ctx.Context, err.Error())
+				return err
+			}
 
+			client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, salt, expirationDuration, cfg.CheckExpire)
+			if err != nil {
+				logger.Error(ctx.Context, err.Error())
+				return err
+			}
 			
-			solution, err := c.Solve(challenge)
+			solution, err := client.Solve(challenge)
 			
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())

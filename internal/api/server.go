@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -34,8 +35,8 @@ func (s *Server) Run(ctx context.Context) {
 		w.Write([]byte("root."))
 	})
 	r.Get(s.baseUrl+"/request", s.requestHandler)
-	r.Get(s.baseUrl+"/verify", s.submitHandler)
-	r.Get(s.baseUrl+"/verify-spam-filter", s.submitSpamFilterHandler)
+	r.Post(s.baseUrl+"/verify", s.submitHandler)
+	r.Post(s.baseUrl+"/verify-spam-filter", s.submitSpamFilterHandler)
 	
 	logger.Info(ctx, "altcha server listening on port "+s.port)
 	if err := http.ListenAndServe(":"+s.port, r); err != nil {
@@ -48,6 +49,7 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create challenge : %s", err), http.StatusInternalServerError)
+		slog.Error(err.Error())
 		return
 	}
 
@@ -100,16 +102,20 @@ func (s *Server) submitSpamFilterHandler(w http.ResponseWriter, r *http.Request)
 	formData, err := formToMap(r)
 	if err != nil {
 		http.Error(w, "Cannot read form data", http.StatusBadRequest)
+		slog.Error(err.Error())
+		return
 	}
 
 	payload := r.FormValue("altcha")
 	if payload == "" {
 		http.Error(w, "Atlcha payload missing", http.StatusBadRequest)
+		return
 	}
 
 	verified, verificationData, err := s.client.VerifyServerSignature(payload)
 	if err != nil || !verified {
 		http.Error(w, "Invalid Altcha payload", http.StatusBadRequest)
+		slog.Error(err.Error())
 		return
 	}
 
@@ -123,6 +129,7 @@ func (s *Server) submitSpamFilterHandler(w http.ResponseWriter, r *http.Request)
 			verified, err := s.client.VerifyFieldsHash(formData, verificationData.Fields, verificationData.FieldsHash)
 			if err != nil || !verified {
 				http.Error(w, "Invalid fields hash", http.StatusBadRequest)
+				slog.Error(err.Error())
 				return
 			}
 		}
@@ -168,12 +175,21 @@ func formToMap(r *http.Request) (map[string][]string, error) {
 	return r.Form, nil
 }
 
-func NewServer(cfg config.Config) *Server {
-	client := *client.NewClient(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.Expire, cfg.CheckExpire)
+func NewServer(cfg config.Config) (*Server, error) {
+	expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+	}
+
+	client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expirationDuration, cfg.CheckExpire)
+
+	if err != nil {
+		return &Server{}, err
+	}
 
 	return &Server {
 		baseUrl: cfg.BaseUrl,
 		port:	cfg.Port,
-		client:	client,
-	}
+		client:	*client,
+	}, nil
 }
