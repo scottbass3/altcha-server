@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -36,8 +35,7 @@ func (s *Server) Run(ctx context.Context) {
 	})
 	r.Get(s.baseUrl+"/request", s.requestHandler)
 	r.Post(s.baseUrl+"/verify", s.submitHandler)
-	r.Post(s.baseUrl+"/verify-spam-filter", s.submitSpamFilterHandler)
-	
+
 	logger.Info(ctx, "altcha server listening on port "+s.port)
 	if err := http.ListenAndServe(":"+s.port, r); err != nil {
 		logger.Error(ctx, err.Error())
@@ -49,7 +47,7 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create challenge : %s", err), http.StatusInternalServerError)
-		slog.Error(err.Error())
+		slog.Error("Failed to create challenge,", "error", err)
 		return
 	}
 
@@ -57,92 +55,32 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	formData := r.FormValue("altcha")
-	if formData == "" {
-		 http.Error(w, "Atlcha payload missing", http.StatusBadRequest)
-		 return
-	}
-
-	decodedPayload, err := base64.StdEncoding.DecodeString(formData)
-	if err != nil {
-		http.Error(w, "Failed to decode Altcha payload", http.StatusBadRequest)
-		return
-	}
-
 	var payload map[string]interface{}
-	if err := json.Unmarshal(decodedPayload, &payload); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		slog.Error("Failed to parse Altcha payload,", "error", err)
 		http.Error(w, "Failed to parse Altcha payload", http.StatusBadRequest)
 		return
 	}
-
+	
 	verified, err := s.client.VerifySolution(payload)
 	
-	if err != nil || !verified {
-		http.Error(w, "Invalid Altcha payload", http.StatusBadRequest)
+	if err != nil {
+		slog.Error("Invalid Altcha payload", "error", err)
+		http.Error(w, "Invalid Altcha payload,", http.StatusBadRequest)
 		return
 	}
 
+	if !verified {
+		slog.Error("Invalid solution")
+		http.Error(w, "Invalid solution,", http.StatusBadRequest)
+		return
+	}
+	
 	writeJSON(w, map[string]interface{}{
 		"success":	true,
-		"data":		formData,
+		"data":		payload,
 	})
-}
-
-func (s *Server) submitSpamFilterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	formData, err := formToMap(r)
-	if err != nil {
-		http.Error(w, "Cannot read form data", http.StatusBadRequest)
-		slog.Error(err.Error())
-		return
-	}
-
-	payload := r.FormValue("altcha")
-	if payload == "" {
-		http.Error(w, "Atlcha payload missing", http.StatusBadRequest)
-		return
-	}
-
-	verified, verificationData, err := s.client.VerifyServerSignature(payload)
-	if err != nil || !verified {
-		http.Error(w, "Invalid Altcha payload", http.StatusBadRequest)
-		slog.Error(err.Error())
-		return
-	}
-
-	if verificationData.Verified && verificationData.Expire > time.Now().Unix() {
-		if verificationData.Classification == "BAD" {
-			http.Error(w, "Classified as spam", http.StatusBadRequest)
-			return
-		}
-
-		if verificationData.FieldsHash != "" {
-			verified, err := s.client.VerifyFieldsHash(formData, verificationData.Fields, verificationData.FieldsHash)
-			if err != nil || !verified {
-				http.Error(w, "Invalid fields hash", http.StatusBadRequest)
-				slog.Error(err.Error())
-				return
-			}
-		}
-
-		writeJSON(w, map[string]interface{}{
-			"success":			true,
-			"data":				formData,
-			"verificationData":	verificationData,
-		})
-		return
-	}
-
-	http.Error(w, "Invalid Altcha payload", http.StatusBadRequest)
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
