@@ -10,6 +10,7 @@ import (
 
 	"forge.cadoles.com/cadoles/altcha-server/internal/client"
 	"forge.cadoles.com/cadoles/altcha-server/internal/config"
+	"github.com/altcha-org/altcha-lib-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -66,14 +67,14 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
-	var payload map[string]interface{}
+	var payload altcha.Payload
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		slog.Debug("Failed to parse Altcha payload,", "error", err)
 		http.Error(w, "Failed to parse Altcha payload", http.StatusBadRequest)
 		return
 	}
-	
+
 	verified, err := s.client.VerifySolution(payload)
 	
 	if err != nil {
@@ -84,7 +85,7 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 
 	if !verified {
 		slog.Debug("Invalid solution")
-		http.Error(w, "Invalid solution,", http.StatusBadRequest)
+		http.Error(w, "Invalid solution", http.StatusBadRequest)
 		return
 	}
 	
