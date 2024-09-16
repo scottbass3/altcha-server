@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"forge.cadoles.com/cadoles/altcha-server/internal/client"
-	"forge.cadoles.com/cadoles/altcha-server/internal/command/common"
 	"forge.cadoles.com/cadoles/altcha-server/internal/config"
 	"github.com/caarlos0/env/v11"
 	"github.com/urfave/cli/v2"
@@ -13,12 +12,9 @@ import (
 )
 
 func SolveCommand() *cli.Command {
-	flags := common.Flags()
-
 	return &cli.Command{
 		Name:		"solve",
 		Usage:		"solve the challenge and return the solution",
-		Flags:		flags,
 		Args: 		true,
 		ArgsUsage:	"[CHALLENGE] [SALT]",
 		Action:	func(ctx *cli.Context) error {

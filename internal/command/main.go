@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 
@@ -17,27 +16,6 @@ func Main(commands ...*cli.Command) {
 		Name: 		"altcha-server",
 		Usage:		"create challenges and validate solutions for atlcha captcha",
 		Commands: commands,
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:		"debug",
-				EnvVars:	[]string{"ALTCHA_DEBUG"},
-				Value: 		false,
-			},
-		},
-	}
-
-	app.ExitErrHandler = func (ctx *cli.Context, err error) {
-		if err == nil {
-			return
-		}
-
-		debug := ctx.Bool("debug")
-
-		if !debug {
-			fmt.Printf("[ERROR] %v\n", err)
-		} else {
-			fmt.Printf("%+v", err)
-		}
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))

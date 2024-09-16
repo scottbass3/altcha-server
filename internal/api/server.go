@@ -20,9 +20,14 @@ type Server struct {
 	baseUrl	string
 	port	string
 	client	client.Client
+	config	config.Config
 }
 
 func (s *Server) Run(ctx context.Context) {
+	if s.config.Debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -46,19 +51,25 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 	challenge, err := s.client.Generate()
 
 	if err != nil {
+		slog.Debug("Failed to create challenge,", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to create challenge : %s", err), http.StatusInternalServerError)
-		slog.Error("Failed to create challenge,", "error", err)
 		return
 	}
 
-	writeJSON(w, challenge)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(challenge)
+	if err != nil {
+		slog.Debug("Failed to encode JSON", "error", err)
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	var payload map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
-		slog.Error("Failed to parse Altcha payload,", "error", err)
+		slog.Debug("Failed to parse Altcha payload,", "error", err)
 		http.Error(w, "Failed to parse Altcha payload", http.StatusBadRequest)
 		return
 	}
@@ -66,21 +77,29 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	verified, err := s.client.VerifySolution(payload)
 	
 	if err != nil {
-		slog.Error("Invalid Altcha payload", "error", err)
+		slog.Debug("Invalid Altcha payload", "error", err)
 		http.Error(w, "Invalid Altcha payload,", http.StatusBadRequest)
 		return
 	}
 
 	if !verified {
-		slog.Error("Invalid solution")
+		slog.Debug("Invalid solution")
 		http.Error(w, "Invalid solution,", http.StatusBadRequest)
 		return
 	}
 	
-	writeJSON(w, map[string]interface{}{
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":	true,
 		"data":		payload,
 	})
+	if err != nil {
+		if s.config.Debug {
+			slog.Debug("Failed to encode JSON", "error", err)
+		}
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		return
+	}
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -96,21 +115,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func writeJSON(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
-	}
-}
-
-func formToMap(r *http.Request) (map[string][]string, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, err
-	}
-
-	return r.Form, nil
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
@@ -129,5 +133,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 		baseUrl: cfg.BaseUrl,
 		port:	cfg.Port,
 		client:	*client,
+		config: cfg,
 	}, nil
 }

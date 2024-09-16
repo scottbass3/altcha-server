@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"forge.cadoles.com/cadoles/altcha-server/internal/client"
-	"forge.cadoles.com/cadoles/altcha-server/internal/command/common"
 	"forge.cadoles.com/cadoles/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/caarlos0/env/v11"
@@ -15,12 +14,9 @@ import (
 )
 
 func VerifyCommand() *cli.Command {
-	flags := common.Flags()
-
 	return &cli.Command{
 		Name:	"verify",
 		Usage:	"verify the solution",
-		Flags:	flags,
 		Args:	true,
 		ArgsUsage: "[challenge] [salt] [signature] [solution]",
 		Action: func(ctx *cli.Context) error {
