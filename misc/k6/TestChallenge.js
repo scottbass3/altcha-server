@@ -4,8 +4,8 @@ import http from 'k6/http'
 export const options = {
   scenarios: {
     load: {
-      vus: 1,
-      iterations: 1,
+      vus: 10,
+      iterations: 10,
       executor: 'per-vu-iterations',
       options: {
         browser: {
