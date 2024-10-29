@@ -83,7 +83,7 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !verified {
+	if !verified && !s.config.DisableValidation {
 		slog.Debug("Invalid solution")
 		http.Error(w, "Invalid solution", http.StatusBadRequest)
 		return
