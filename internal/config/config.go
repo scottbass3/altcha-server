@@ -10,5 +10,5 @@ type Config struct {
 	Expire				string	`env:"ALTCHA_EXPIRE" envDefault:"600"`
 	CheckExpire			bool	`env:"ALTCHA_CHECK_EXPIRE" envDefault:"1"`
 	Debug				bool	`env:"ALTCHA_DEBUG" envDefault:"false"`
-	DisableValidation	bool	`env:"ATLCHA_DISABLE_VALIDATION" envDefault:"false"`
+	DisableValidation	bool	`env:"ALTCHA_DISABLE_VALIDATION" envDefault:"false"`
 }
