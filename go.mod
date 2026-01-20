@@ -1,4 +1,4 @@
-module forge.cadoles.com/cadoles/altcha-server
+module github.com/scottbass3/altcha-server
 
 go 1.23.0
 

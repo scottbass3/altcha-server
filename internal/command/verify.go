@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"forge.cadoles.com/cadoles/altcha-server/internal/client"
-	"forge.cadoles.com/cadoles/altcha-server/internal/config"
+	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/caarlos0/env/v11"
 	"github.com/urfave/cli/v2"

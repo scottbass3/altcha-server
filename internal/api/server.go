@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"forge.cadoles.com/cadoles/altcha-server/internal/client"
-	"forge.cadoles.com/cadoles/altcha-server/internal/config"
+	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

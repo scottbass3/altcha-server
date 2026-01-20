@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"forge.cadoles.com/cadoles/altcha-server/internal/client"
-	"forge.cadoles.com/cadoles/altcha-server/internal/config"
+	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/caarlos0/env/v11"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/wpetit/goweb/logger"

@@ -1,9 +1,9 @@
-IMAGE_REPO ?= reg.cadoles.com/cadoles/altcha
+IMAGE_REPO ?= ghcr.io/scottbass3/altcha-server
 
 GORELEASER_VERSION ?= v1.13.1
 GORELEASER_ARGS ?= release --snapshot --rm-dist
 
-ALTCHA_VERSION ?= 
+ALTCHA_VERSION ?=
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 DATE_VERSION := $(shell date +%Y.%-m.%-d)
 FULL_VERSION := v$(DATE_VERSION)-$(GIT_COMMIT)$(if $(shell git diff --stat),-dirty,)
@@ -39,20 +39,8 @@ build-image:
 		-t "$(IMAGE_REPO):latest" \
 		.
 
-release-image: .mktools
-	@[ ! -z "$(MKT_PROJECT_VERSION)" ] || ( echo "Just downloaded mktools. Please re-run command."; exit 1 )
-	docker tag "$(IMAGE_REPO):latest" "$(IMAGE_REPO):$(MKT_PROJECT_VERSION)"
-	docker tag "$(IMAGE_REPO):latest" "$(IMAGE_REPO):$(MKT_PROJECT_SHORT_VERSION)"
+release-image:
+	@[ ! -z "$(VERSION)" ] || ( echo "VERSION is required (e.g. VERSION=v1.2.3)"; exit 1 )
+	docker tag "$(IMAGE_REPO):latest" "$(IMAGE_REPO):$(VERSION)"
 	docker push "$(IMAGE_REPO):latest"
-	docker push "$(IMAGE_REPO):$(MKT_PROJECT_VERSION)"
-	docker push "$(IMAGE_REPO):$(MKT_PROJECT_SHORT_VERSION)"
-
-.PHONY: mktools
-mktools:
-	rm -rf .mktools
-	curl -q https://forge.cadoles.com/Cadoles/mktools/raw/branch/master/install.sh | $(SHELL)
-
-.mktools:
-	$(MAKE) mktools
-
--include .mktools/*.mk
+	docker push "$(IMAGE_REPO):$(VERSION)"

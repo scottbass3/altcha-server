@@ -12,7 +12,7 @@ $ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha run
 
 Depuis l'image docker
 ```sh
-$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" -p 3333:3333 reg.cadoles.com/cadoles/altcha
+$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" -p 3333:3333 ghcr.io/scottbass3/altcha-server:latest
 ```
 
 Depuis les sources

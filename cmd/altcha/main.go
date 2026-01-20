@@ -1,7 +1,7 @@
 package main
 
 import (
-	"forge.cadoles.com/cadoles/altcha-server/internal/command"
+	"github.com/scottbass3/altcha-server/internal/command"
 )
 
 func main() {
