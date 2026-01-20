@@ -6,11 +6,16 @@ COPY . /src
 
 WORKDIR /src
 
-RUN go mod download && make GORELEASER_ARGS="build --rm-dist --single-target --snapshot" goreleaser
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+RUN go mod download && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -o /app/altcha ./cmd/altcha
 
 FROM busybox
 
-COPY --from=build /src/dist/altcha_linux_amd64_v1 /app
+COPY --from=build /app/altcha /app/altcha
 RUN chown -R 1000:1000 /app
 
 WORKDIR /app

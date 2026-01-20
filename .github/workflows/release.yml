@@ -73,7 +73,7 @@ jobs:
             log=$(git log "${tag}" --pretty=format:"- %h %s")
           fi
 
-          cat > release-notes.md <<EOF
+          cat > release-notes.md <<'EOF'
           ## Changelog
           ${log}
 
