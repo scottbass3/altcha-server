@@ -73,12 +73,12 @@ jobs:
             log=$(git log "${tag}" --pretty=format:"- %h %s")
           fi
 
-          cat > release-notes.md <<'EOF'
+          cat > release-notes.md <<EOF
           ## Changelog
           ${log}
 
           ## Container Image
-          `docker pull ghcr.io/scottbass3/altcha-server:${tag}`
+          \`docker pull ghcr.io/scottbass3/altcha-server:${tag}\`
           EOF
 
       - name: Create GitHub Release
@@ -88,6 +88,7 @@ jobs:
           name: ${{ github.ref_name }}
           body_path: release-notes.md
           files: |
-            dist/*
+            dist/*.tar.gz
+            dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
