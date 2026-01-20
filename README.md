@@ -1,69 +1,69 @@
-# Altcha server
+# Altcha Server
 
-Serveur de génération de challenges altcha et de validation de la solution
+Altcha server for generating challenges and validating solutions.
 
-## Utilisation
+## Usage
 
-### Lancer le serveur
-Depuis le binaire
+### Run the server
+From the binary:
 ```sh
-$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha run
+$ ALTCHA_HMAC_KEY="HMAC_KEY" bin/altcha run
 ```
 
-Depuis l'image docker
+From the Docker image:
 ```sh
-$ docker run -e ALTCHA_HMAC_KEY="CLÉ HMAC" -p 3333:3333 ghcr.io/scottbass3/altcha-server:latest
+$ docker run -e ALTCHA_HMAC_KEY="HMAC_KEY" -p 3333:3333 ghcr.io/scottbass3/altcha-server:latest
 ```
 
-Depuis les sources
+From source:
 ```sh
-$ ALTCHA_HMAC_KEY="CLÉ HMAC" go run ./cmd/altcha run
+$ ALTCHA_HMAC_KEY="HMAC_KEY" go run ./cmd/altcha run
 ```
 
-Une fois le serveur lancé, se rendre sur localhost:3333/request pour effectuer une demande de challenge.
-Publier la solution sur localhost:3333/verify ou localhost:3333/verify-spam-filter
+Once the server is running, visit `http://localhost:3333/request` to request a challenge.
+Post the solution to `http://localhost:3333/verify`.
 
-Les détails sur le fonctionnement sont à retrouver sur la documentation d'altcha : https://altcha.org/fr/docs/get-started/
+Altcha documentation: https://altcha.org/fr/docs/get-started/
 
-### Autres commandes
-Générer un challenge
+### Other commands
+Generate a challenge:
 ```sh
-$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha generate
+$ ALTCHA_HMAC_KEY="HMAC_KEY" bin/altcha generate
 ```
 
-Résoudre un challenge
+Solve a challenge:
 ```sh
-$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/atlcha solve [CHALLENGE] [SALT]
+$ ALTCHA_HMAC_KEY="HMAC_KEY" bin/altcha solve [CHALLENGE] [SALT]
 ```
 
-Vérifier une solution
+Verify a solution:
 ```sh
-$ ALTCHA_HMAC_KEY="CLÉ HMAC" bin/altcha verify [CHALLENGE] [SALT] [SIGNATURE] [SOLUTION]
+$ ALTCHA_HMAC_KEY="HMAC_KEY" bin/altcha verify [CHALLENGE] [SALT] [SIGNATURE] [SOLUTION]
 ```
 
-## Variables d'environement
-| Nom                 | Description                                                                  | Valeur par défaut        | Requis |
-|---------------------|------------------------------------------------------------------------------|--------------------------|--------|
-| ALTCHA_BASE_URL     | Url de base du service                                                       |                          | Non    |
-| ALTCHA_PORT         | Port d'écoute du serveur                                                     | 3333                     | Non    |
-| ALTCHA_HMAC_KEY     | Clé d'encodage des signatures                                                |                          | Oui    |
-| ALTCHA_MAX_NUMBER   | Nombre d'itération maximum pour résoudre le challenge (défini la difficulté) | 1000000                  | Non    |
-| ALTCHA_ALGORITHM    | Algorithme de hashage (valeurs possibles: SHA-1, SHA-256, SHA-512)           | SHA-256                  | Non    |
-| ALTCHA_SALT         | Forcer le salt du challenge                                                  | *Généré automatiquement* | Non    |
-| ALTCHA_EXPIRE       | Temps avant expiration du challenge (en secondes)                            | 600                      | Non    |
-| ALTCHA_CHECK_EXPIRE | Vérifier si le challenge à expiré                                            | 1                        | Non    |
+## Environment variables
+| Name                | Description                                                      | Default   | Required |
+|---------------------|------------------------------------------------------------------|-----------|----------|
+| ALTCHA_BASE_URL     | Base URL prefix for endpoints                                   |           | No       |
+| ALTCHA_PORT         | Server listen port                                               | 3333      | No       |
+| ALTCHA_HMAC_KEY     | HMAC key used to sign challenges                                 |           | Yes      |
+| ALTCHA_MAX_NUMBER   | Max iterations for solving a challenge (difficulty)              | 1000000   | No       |
+| ALTCHA_ALGORITHM    | Hash algorithm (SHA-1, SHA-256, SHA-512)                         | SHA-256   | No       |
+| ALTCHA_SALT         | Force a fixed salt for challenges                                |           | No       |
+| ALTCHA_EXPIRE       | Challenge expiration (seconds)                                   | 600       | No       |
+| ALTCHA_CHECK_EXPIRE | Whether to check challenge expiration                            | 1         | No       |
 
-## Construire le binaire
+## Build the binary
 ```sh
 $ make build
 ```
 
-## Construire l'image docker
+## Build the Docker image
 ```sh
 $ make build-image
 ```
 
-## Publier l'image docker
+## Publish the Docker image
 ```sh
 $ make release-image
 ```
