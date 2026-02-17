@@ -8,20 +8,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scottbass3/altcha-server/internal/client"
-	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"gitlab.com/wpetit/goweb/logger"
 )
 
 type Server struct {
-	baseUrl	string
-	port	string
-	client	client.Client
-	config	config.Config
+	baseUrl string
+	port    string
+	client  client.Client
+	config  config.Config
 }
 
 func (s *Server) Run(ctx context.Context) {
@@ -35,7 +35,7 @@ func (s *Server) Run(ctx context.Context) {
 	r.Use(middleware.Recoverer)
 	r.Use(corsMiddleware)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
-	
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("root."))
 	})
@@ -76,7 +76,7 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	verified, err := s.client.VerifySolution(payload)
-	
+
 	if err != nil {
 		slog.Debug("Invalid Altcha payload", "error", err)
 		http.Error(w, "Invalid Altcha payload,", http.StatusBadRequest)
@@ -88,11 +88,11 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid solution", http.StatusBadRequest)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":	true,
-		"data":		payload,
+		"success": true,
+		"data":    payload,
 	})
 	if err != nil {
 		if s.config.Debug {
@@ -119,9 +119,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
-	expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+	expirationDuration, err := time.ParseDuration(cfg.Expire + "s")
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		return &Server{}, fmt.Errorf("invalid ALTCHA_EXPIRE value %q: %w", cfg.Expire, err)
 	}
 
 	client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expirationDuration, cfg.CheckExpire)
@@ -130,10 +130,10 @@ func NewServer(cfg config.Config) (*Server, error) {
 		return &Server{}, err
 	}
 
-	return &Server {
+	return &Server{
 		baseUrl: cfg.BaseUrl,
-		port:	cfg.Port,
-		client:	*client,
-		config: cfg,
+		port:    cfg.Port,
+		client:  *client,
+		config:  cfg,
 	}, nil
 }
