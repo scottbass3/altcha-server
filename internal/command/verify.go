@@ -26,12 +26,18 @@ func VerifyCommand() *cli.Command {
 				return err
 			}
 
+			if ctx.NArg() < 4 {
+				return fmt.Errorf("usage: verify [challenge] [salt] [signature] [solution]")
+			}
 			challenge := ctx.Args().Get(0)
 			salt := ctx.Args().Get(1)
 			signature := ctx.Args().Get(2)
-			solution, _ := strconv.ParseInt(ctx.Args().Get(3), 10, 64)
+			solution, err := strconv.ParseInt(ctx.Args().Get(3), 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid solution %q: must be an integer", ctx.Args().Get(3))
+			}
 			
-			expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+			expirationDuration, err := time.ParseDuration(cfg.Expire + "s")
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err
