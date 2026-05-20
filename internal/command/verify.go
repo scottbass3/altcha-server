@@ -3,9 +3,8 @@ package command
 import (
 	"fmt"
 	"strconv"
-	"time"
 
-	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/command/common"
 	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/caarlos0/env/v11"
@@ -15,20 +14,21 @@ import (
 
 func VerifyCommand() *cli.Command {
 	return &cli.Command{
-		Name:	"verify",
-		Usage:	"verify the solution",
-		Args:	true,
+		Name:      "verify",
+		Usage:     "verify the solution",
+		Args:      true,
 		ArgsUsage: "[challenge] [salt] [signature] [solution]",
 		Action: func(ctx *cli.Context) error {
+			if ctx.NArg() < 4 {
+				return fmt.Errorf("usage: verify [challenge] [salt] [signature] [solution]")
+			}
+
 			cfg := config.Config{}
 			if err := env.Parse(&cfg); err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
-			if ctx.NArg() < 4 {
-				return fmt.Errorf("usage: verify [challenge] [salt] [signature] [solution]")
-			}
 			challenge := ctx.Args().Get(0)
 			salt := ctx.Args().Get(1)
 			signature := ctx.Args().Get(2)
@@ -36,36 +36,28 @@ func VerifyCommand() *cli.Command {
 			if err != nil {
 				return fmt.Errorf("invalid solution %q: must be an integer", ctx.Args().Get(3))
 			}
-			
-			expirationDuration, err := time.ParseDuration(cfg.Expire)
-			if err != nil {
-				logger.Error(ctx.Context, err.Error())
-				return err
-			}
 
-			client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expirationDuration, cfg.CheckExpire)
+			client, err := common.NewClientFromConfig(cfg)
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
 			payload := altcha.Payload{
-				Algorithm:	cfg.Algorithm,
-				Challenge:	challenge,
-				Number:		solution,
-				Salt:		salt,
-				Signature:	signature,
+				Algorithm: cfg.Algorithm,
+				Challenge: challenge,
+				Number:    solution,
+				Salt:      salt,
+				Signature: signature,
 			}
 
 			verified, err := client.VerifySolution(payload)
-
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
 			fmt.Print(verified)
-
 			return nil
 		},
 	}
