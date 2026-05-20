@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/altcha-org/altcha-lib-go"
@@ -17,10 +18,16 @@ type Client struct {
 }
 
 func New(hmacKey string, maxNumber int64, algorithm string, salt string, expire time.Duration, checkExpire bool) (*Client, error) {
-	if len(hmacKey) == 0 {
-		return &Client{}, errors.New("HMAC key not found")
+	if len(hmacKey) < 16 {
+		return nil, errors.New("ALTCHA_HMAC_KEY must be at least 16 characters")
 	}
-	return &Client {
+	alg := altcha.Algorithm(algorithm)
+	switch alg {
+	case altcha.SHA1, altcha.SHA256, altcha.SHA512:
+	default:
+		return nil, fmt.Errorf("unsupported algorithm %q: must be SHA-1, SHA-256, or SHA-512", algorithm)
+	}
+	return &Client{
 		hmacKey:		hmacKey,
 		maxNumber:		maxNumber,
 		algorithm:		altcha.Algorithm(algorithm),
