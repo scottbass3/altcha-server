@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+
 permissions:
   contents: write
   packages: write
@@ -19,7 +20,7 @@ jobs:
 
       - name: Ensure tag is on master
         run: |
-          git fetch origin master --depth=1
+          git fetch origin master
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "Tag is not on master"
             exit 1
@@ -30,6 +31,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Run tests
+        run: go test -race ./...
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -58,7 +62,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: latest
+          version: "~> v2"
           args: release --clean --skip=publish
         env:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
@@ -73,22 +77,17 @@ jobs:
             log=$(git log "${tag}" --pretty=format:"- %h %s")
           fi
 
-          cat > release-notes.md <<EOF
-          ## Changelog
-          ${log}
-
-          ## Container Image
-          \`docker pull ghcr.io/scottbass3/altcha-server:${tag}\`
-          EOF
+          printf '## Changelog\n' > release-notes.md
+          printf '%s\n\n' "$log" >> release-notes.md
+          printf '## Container Image\n`docker pull ghcr.io/scottbass3/altcha-server:%s`\n' "$tag" >> release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
           body_path: release-notes.md
           files: |
             dist/*.tar.gz
             dist/*.zip
+            dist/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
