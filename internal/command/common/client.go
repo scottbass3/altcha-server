@@ -13,5 +13,5 @@ func NewClientFromConfig(cfg config.Config) (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid ALTCHA_EXPIRE %q: %w", cfg.Expire, err)
 	}
-	return client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expire, cfg.CheckExpire)
+	return client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.SaltLength, expire, cfg.CheckExpire)
 }

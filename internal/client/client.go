@@ -10,15 +10,16 @@ import (
 )
 
 type Client struct {
-	hmacKey		string
-	maxNumber	int64
-	algorithm	altcha.Algorithm
-	salt		string
-	expire		time.Duration
-	checkExpire	bool
+	hmacKey     string
+	maxNumber   int64
+	algorithm   altcha.Algorithm
+	salt        string
+	saltLength  int
+	expire      time.Duration
+	checkExpire bool
 }
 
-func New(hmacKey string, maxNumber int64, algorithm string, salt string, expire time.Duration, checkExpire bool) (*Client, error) {
+func New(hmacKey string, maxNumber int64, algorithm string, salt string, saltLength int, expire time.Duration, checkExpire bool) (*Client, error) {
 	if len(hmacKey) < 16 {
 		return nil, errors.New("ALTCHA_HMAC_KEY must be at least 16 characters")
 	}
@@ -29,12 +30,13 @@ func New(hmacKey string, maxNumber int64, algorithm string, salt string, expire 
 		return nil, fmt.Errorf("unsupported algorithm %q: must be SHA-1, SHA-256, or SHA-512", algorithm)
 	}
 	return &Client{
-		hmacKey:		hmacKey,
-		maxNumber:		maxNumber,
-		algorithm:		altcha.Algorithm(algorithm),
-		salt:			salt,
-		expire:			expire,
-		checkExpire:	checkExpire,
+		hmacKey:     hmacKey,
+		maxNumber:   maxNumber,
+		algorithm:   alg,
+		salt:        salt,
+		saltLength:  saltLength,
+		expire:      expire,
+		checkExpire: checkExpire,
 	}, nil
 }
 
@@ -42,10 +44,11 @@ func (c *Client) Generate() (altcha.Challenge, error) {
 	expiration := time.Now().Add(c.expire)
 	
 	options := altcha.ChallengeOptions{
-		HMACKey:	c.hmacKey,
-		MaxNumber:	c.maxNumber,
-		Algorithm:	c.algorithm,
-		Expires: 	&expiration,
+		HMACKey:    c.hmacKey,
+		MaxNumber:  c.maxNumber,
+		Algorithm:  c.algorithm,
+		SaltLength: c.saltLength,
+		Expires:    &expiration,
 	}
 
 	if len(c.salt) > 0 {
@@ -70,3 +73,4 @@ func (c *Client) VerifyServerSignature(payload interface{}) (bool, altcha.Server
 func (c *Client) VerifyFieldsHash(formData map[string][]string, fields []string, fieldsHash string) (bool, error) {
 	return altcha.VerifyFieldsHash(formData, fields, fieldsHash, c.algorithm)
 }
+

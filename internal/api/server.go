@@ -33,14 +33,19 @@ func (s *Server) Run(ctx context.Context) {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(corsMiddleware)
+	r.Use(s.corsMiddleware)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("root."))
 	})
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	r.Get(s.baseUrl+"/request", s.requestHandler)
 	r.Post(s.baseUrl+"/verify", s.submitHandler)
+	r.Post(s.baseUrl+"/verify-fields", s.verifyFieldsHandler)
+	r.Post(s.baseUrl+"/verify-server-signature", s.verifyServerSignatureHandler)
 
 	logger.Info(ctx, "altcha server listening on port "+s.port)
 	if err := http.ListenAndServe(":"+s.port, r); err != nil {
@@ -50,36 +55,27 @@ func (s *Server) Run(ctx context.Context) {
 
 func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 	challenge, err := s.client.Generate()
-
 	if err != nil {
-		slog.Debug("Failed to create challenge,", "error", err)
-		http.Error(w, fmt.Sprintf("Failed to create challenge : %s", err), http.StatusInternalServerError)
+		slog.Debug("Failed to create challenge", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to create challenge: %s", err), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(challenge)
-	if err != nil {
-		slog.Debug("Failed to encode JSON", "error", err)
-		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, challenge)
 }
 
 func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	var payload altcha.Payload
-	err := json.NewDecoder(r.Body).Decode(&payload)
-	if err != nil {
-		slog.Debug("Failed to parse Altcha payload,", "error", err)
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		slog.Debug("Failed to parse Altcha payload", "error", err)
 		http.Error(w, "Failed to parse Altcha payload", http.StatusBadRequest)
 		return
 	}
 
 	verified, err := s.client.VerifySolution(payload)
-
 	if err != nil {
 		slog.Debug("Invalid Altcha payload", "error", err)
-		http.Error(w, "Invalid Altcha payload,", http.StatusBadRequest)
+		http.Error(w, "Invalid Altcha payload", http.StatusBadRequest)
 		return
 	}
 
@@ -89,25 +85,54 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"data":    payload,
-	})
-	if err != nil {
-		if s.config.Debug {
-			slog.Debug("Failed to encode JSON", "error", err)
-		}
-		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, map[string]bool{"success": true})
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
+type verifyFieldsRequest struct {
+	FormData   map[string][]string `json:"formData"`
+	Fields     []string            `json:"fields"`
+	FieldsHash string              `json:"fieldsHash"`
+}
+
+func (s *Server) verifyFieldsHandler(w http.ResponseWriter, r *http.Request) {
+	var req verifyFieldsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Failed to parse request", http.StatusBadRequest)
+		return
+	}
+
+	verified, err := s.client.VerifyFieldsHash(req.FormData, req.Fields, req.FieldsHash)
+	if err != nil {
+		slog.Debug("VerifyFieldsHash error", "error", err)
+		http.Error(w, "Failed to verify fields hash", http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, map[string]bool{"success": verified})
+}
+
+func (s *Server) verifyServerSignatureHandler(w http.ResponseWriter, r *http.Request) {
+	var payload altcha.ServerSignaturePayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Failed to parse request", http.StatusBadRequest)
+		return
+	}
+
+	verified, data, err := s.client.VerifyServerSignature(payload)
+	if err != nil {
+		slog.Debug("VerifyServerSignature error", "error", err)
+		http.Error(w, "Failed to verify server signature", http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, map[string]any{"success": verified, "data": data})
+}
+
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", s.config.CorsOrigins)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -118,22 +143,31 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func writeJSON(w http.ResponseWriter, v any) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
 func NewServer(cfg config.Config) (*Server, error) {
 	expirationDuration, err := time.ParseDuration(cfg.Expire)
 	if err != nil {
-		return &Server{}, fmt.Errorf("invalid ALTCHA_EXPIRE value %q: %w", cfg.Expire, err)
+		return nil, fmt.Errorf("invalid ALTCHA_EXPIRE value %q: %w", cfg.Expire, err)
 	}
 
-	client, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, expirationDuration, cfg.CheckExpire)
-
+	c, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.SaltLength, expirationDuration, cfg.CheckExpire)
 	if err != nil {
-		return &Server{}, err
+		return nil, err
 	}
 
 	return &Server{
 		baseUrl: cfg.BaseUrl,
 		port:    cfg.Port,
-		client:  *client,
+		client:  *c,
 		config:  cfg,
 	}, nil
 }
