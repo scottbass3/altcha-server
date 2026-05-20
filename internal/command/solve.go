@@ -43,7 +43,7 @@ func SolveCommand() *cli.Command {
 			
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
-				return nil
+				return err
 			}
 			
 			fmt.Printf("%+v\n", solution)
