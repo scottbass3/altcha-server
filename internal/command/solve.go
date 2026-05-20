@@ -39,7 +39,7 @@ func SolveCommand() *cli.Command {
 				return err
 			}
 			
-			solution, err := client.Solve(challenge)
+			solution, err := client.Solve(ctx.Context, challenge)
 			
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())

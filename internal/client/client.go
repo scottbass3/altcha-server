@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -54,8 +55,8 @@ func (c *Client) Generate() (altcha.Challenge, error) {
 	return altcha.CreateChallenge(options)
 }
 
-func (c *Client) Solve(challenge string) (*altcha.Solution, error) {
-	return altcha.SolveChallenge(challenge, c.salt, c.algorithm, int(c.maxNumber), 0, make(<-chan struct{}))
+func (c *Client) Solve(ctx context.Context, challenge string) (*altcha.Solution, error) {
+	return altcha.SolveChallenge(challenge, c.salt, c.algorithm, int(c.maxNumber), 0, ctx.Done())
 }
 
 func (c *Client) VerifySolution(payload interface{}) (bool, error) {
