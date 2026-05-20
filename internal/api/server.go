@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/altcha-org/altcha-lib-go"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/scottbass3/altcha-server/internal/client"
 	"github.com/scottbass3/altcha-server/internal/config"
+	"github.com/scottbass3/altcha-server/internal/store"
 	"gitlab.com/wpetit/goweb/logger"
 )
 
@@ -22,9 +24,11 @@ type Server struct {
 	port    string
 	client  client.Client
 	config  config.Config
+	nonces  *store.NonceStore
 }
 
 func (s *Server) Run(ctx context.Context) {
+	s.nonces = store.NewNonceStore(ctx)
 	if s.config.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
@@ -43,6 +47,7 @@ func (s *Server) Run(ctx context.Context) {
 		w.WriteHeader(http.StatusOK)
 	})
 	r.Get(s.baseUrl+"/request", s.requestHandler)
+
 	r.Post(s.baseUrl+"/verify", s.submitHandler)
 	r.Post(s.baseUrl+"/verify-fields", s.verifyFieldsHandler)
 	r.Post(s.baseUrl+"/verify-server-signature", s.verifyServerSignatureHandler)
@@ -85,7 +90,22 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if verified && !s.nonces.Consume(payload.Challenge, challengeExpiry(payload)) {
+		http.Error(w, "Challenge already used", http.StatusConflict)
+		return
+	}
+
 	writeJSON(w, map[string]bool{"success": true})
+}
+
+func challengeExpiry(payload altcha.Payload) time.Time {
+	params := altcha.ExtractParams(payload)
+	if exp := params.Get("expires"); exp != "" {
+		if unix, err := strconv.ParseInt(exp, 10, 64); err == nil {
+			return time.Unix(unix, 0)
+		}
+	}
+	return time.Now().Add(24 * time.Hour)
 }
 
 type verifyFieldsRequest struct {
