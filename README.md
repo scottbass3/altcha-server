@@ -85,6 +85,8 @@ Verifies a solved challenge. Each challenge can only be submitted once (replay p
 
 Returns `409 Conflict` if the challenge was already used.
 
+> **Multi-instance deployments:** the default `memory` store is per-process. Use `redis` or `memcached` to share nonce state across instances.
+
 ---
 
 ### `POST /verify-fields`
@@ -154,6 +156,9 @@ Verifies a signed payload issued by ALTCHA's verification service.
 | `ALTCHA_EXPIRE`           | Challenge TTL as a Go duration (`600s`, `10m`, `1h`)     | `600s`   | No       |
 | `ALTCHA_CHECK_EXPIRE`     | Reject expired challenges                                | `true`   | No       |
 | `ALTCHA_CORS_ORIGINS`     | `Access-Control-Allow-Origin` header value               | `*`      | No       |
+| `ALTCHA_STORE`            | Nonce store backend: `memory`, `redis`, or `memcached`  | `memory` | No       |
+| `ALTCHA_REDIS_URL`        | Redis connection URL (required when `ALTCHA_STORE=redis`) |        | No       |
+| `ALTCHA_MEMCACHED_SERVERS` | Comma-separated `host:port` list (required when `ALTCHA_STORE=memcached`) | | No |
 | `ALTCHA_DEBUG`            | Enable debug logging                                     | `false`  | No       |
 | `ALTCHA_DISABLE_VALIDATION` | Skip solution verification (development only)          | `false`  | No       |
 

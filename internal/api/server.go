@@ -24,11 +24,16 @@ type Server struct {
 	port    string
 	client  client.Client
 	config  config.Config
-	nonces  *store.NonceStore
+	nonces  store.Store
 }
 
 func (s *Server) Run(ctx context.Context) {
-	s.nonces = store.NewNonceStore(ctx)
+	var err error
+	s.nonces, err = store.New(ctx, s.config)
+	if err != nil {
+		logger.Error(ctx, "failed to initialize nonce store: "+err.Error())
+		return
+	}
 	if s.config.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
@@ -90,9 +95,17 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if verified && !s.nonces.Consume(payload.Challenge, challengeExpiry(payload)) {
-		http.Error(w, "Challenge already used", http.StatusConflict)
-		return
+	if verified {
+		consumed, err := s.nonces.Consume(payload.Challenge, challengeExpiry(payload))
+		if err != nil {
+			slog.Error("nonce store error", "error", err)
+			http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if !consumed {
+			http.Error(w, "Challenge already used", http.StatusConflict)
+			return
+		}
 	}
 
 	writeJSON(w, map[string]bool{"success": true})

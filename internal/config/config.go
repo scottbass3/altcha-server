@@ -11,6 +11,9 @@ type Config struct {
 	Expire            string `env:"ALTCHA_EXPIRE" envDefault:"600s"`
 	CheckExpire       bool   `env:"ALTCHA_CHECK_EXPIRE" envDefault:"true"`
 	CorsOrigins       string `env:"ALTCHA_CORS_ORIGINS" envDefault:"*"`
+	StoreBackend      string `env:"ALTCHA_STORE" envDefault:"memory"`
+	RedisURL          string `env:"ALTCHA_REDIS_URL"`
+	MemcachedServers  string `env:"ALTCHA_MEMCACHED_SERVERS"`
 	Debug             bool   `env:"ALTCHA_DEBUG" envDefault:"false"`
 	DisableValidation bool   `env:"ALTCHA_DISABLE_VALIDATION" envDefault:"false"`
 }
