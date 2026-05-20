@@ -7,8 +7,8 @@ type Config struct {
 	MaxNumber			int64	`env:"ALTCHA_MAX_NUMBER" envDefault:"1000000"`
 	Algorithm			string	`env:"ALTCHA_ALGORITHM" envDefault:"SHA-256"`
 	Salt				string	`env:"ALTCHA_SALT"`
-	Expire				string	`env:"ALTCHA_EXPIRE" envDefault:"600"`
-	CheckExpire			bool	`env:"ALTCHA_CHECK_EXPIRE" envDefault:"1"`
+	Expire				string	`env:"ALTCHA_EXPIRE" envDefault:"600s"`
+	CheckExpire			bool	`env:"ALTCHA_CHECK_EXPIRE" envDefault:"true"`
 	Debug				bool	`env:"ALTCHA_DEBUG" envDefault:"false"`
 	DisableValidation	bool	`env:"ALTCHA_DISABLE_VALIDATION" envDefault:"false"`
 }

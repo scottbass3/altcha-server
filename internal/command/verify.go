@@ -37,7 +37,7 @@ func VerifyCommand() *cli.Command {
 				return fmt.Errorf("invalid solution %q: must be an integer", ctx.Args().Get(3))
 			}
 			
-			expirationDuration, err := time.ParseDuration(cfg.Expire + "s")
+			expirationDuration, err := time.ParseDuration(cfg.Expire)
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err

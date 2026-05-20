@@ -26,7 +26,7 @@ func GenerateCommand() *cli.Command {
 				return err
 			}
 			
-			expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+			expirationDuration, err := time.ParseDuration(cfg.Expire)
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err

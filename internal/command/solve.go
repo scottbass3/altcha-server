@@ -27,7 +27,7 @@ func SolveCommand() *cli.Command {
 			challenge := ctx.Args().Get(0)
 			salt := ctx.Args().Get(1)
 
-			expirationDuration, err := time.ParseDuration(cfg.Expire+"s")
+			expirationDuration, err := time.ParseDuration(cfg.Expire)
 			if err != nil {
 				logger.Error(ctx.Context, err.Error())
 				return err

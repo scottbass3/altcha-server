@@ -119,7 +119,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
-	expirationDuration, err := time.ParseDuration(cfg.Expire + "s")
+	expirationDuration, err := time.ParseDuration(cfg.Expire)
 	if err != nil {
 		return &Server{}, fmt.Errorf("invalid ALTCHA_EXPIRE value %q: %w", cfg.Expire, err)
 	}
