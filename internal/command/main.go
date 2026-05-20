@@ -8,13 +8,13 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func Main(commands ...*cli.Command) {
+func Main(version string, commands ...*cli.Command) {
 	ctx := context.Background()
 
-	app := &cli.App {
-		Version:	"1",
-		Name: 		"altcha-server",
-		Usage:		"create challenges and validate solutions for atlcha captcha",
+	app := &cli.App{
+		Version:  version,
+		Name:     "altcha-server",
+		Usage:    "create challenges and validate solutions for altcha captcha",
 		Commands: commands,
 	}
 
