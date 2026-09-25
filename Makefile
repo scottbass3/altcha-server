@@ -1,7 +1,7 @@
 IMAGE_REPO ?= ghcr.io/scottbass3/altcha-server
 
-GORELEASER_VERSION ?= v1.13.1
-GORELEASER_ARGS ?= release --snapshot --rm-dist
+GORELEASER_VERSION ?= v2.15.4
+GORELEASER_ARGS ?= release --snapshot --clean
 
 ALTCHA_VERSION ?=
 GIT_COMMIT := $(shell git rev-parse --short HEAD)

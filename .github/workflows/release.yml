@@ -48,12 +48,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set build date
+        run: echo "BUILD_DATE=$(date --utc --rfc-3339=seconds)" >> "$GITHUB_ENV"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            GIT_REF=${{ github.sha }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
           tags: |
             ghcr.io/scottbass3/altcha-server:${{ github.ref_name }}
             ghcr.io/scottbass3/altcha-server:latest

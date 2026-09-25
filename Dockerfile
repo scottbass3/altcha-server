@@ -1,17 +1,22 @@
-FROM golang:1.23.1 AS build
-
-RUN apt-get update && apt-get install -y make && rm -rf /var/lib/apt/lists/*
-
-COPY . /src
+FROM --platform=$BUILDPLATFORM golang:1.24 AS build
 
 WORKDIR /src
 
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
+ARG VERSION=dev
+ARG GIT_REF=unknown
+ARG BUILD_DATE=unknown
 
-RUN go mod download && \
-    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -o /app/altcha ./cmd/altcha
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build \
+    -ldflags "-s -w -X 'main.ProjectVersion=${VERSION}' -X 'main.GitRef=${GIT_REF}' -X 'main.BuildDate=${BUILD_DATE}'" \
+    -o /app/altcha ./cmd/altcha
 
 FROM busybox
 

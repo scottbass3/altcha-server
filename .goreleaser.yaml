@@ -1,9 +1,13 @@
+version: 2
+
 project_name: altcha
 builds:
   - id: altcha
     main: ./cmd/altcha
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.ProjectVersion={{.Version}} -X main.GitRef={{.ShortCommit}} -X main.BuildDate={{.Date}}
     goos:
       - linux
       - darwin
@@ -13,11 +17,11 @@ builds:
       - arm64
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: "checksums.txt"
