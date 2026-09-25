@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -32,13 +33,19 @@ type Server struct {
 	corsAny     bool
 }
 
-func (s *Server) Run(ctx context.Context) {
+const (
+	maxBodyBytes    = 64 << 10
+	shutdownTimeout = 10 * time.Second
+)
+
+func (s *Server) Run(ctx context.Context) error {
 	var err error
 	s.nonces, err = store.New(ctx, s.config)
 	if err != nil {
-		logger.Error(ctx, "failed to initialize nonce store: "+err.Error())
-		return
+		return fmt.Errorf("failed to initialize nonce store: %w", err)
 	}
+	defer s.nonces.Close()
+
 	if s.config.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
@@ -46,10 +53,38 @@ func (s *Server) Run(ctx context.Context) {
 		logger.Warn(ctx, "ALTCHA_CHECK_EXPIRE=false: replay protection only covers ALTCHA_EXPIRE after each submission")
 	}
 
+	srv := &http.Server{
+		Addr:              ":" + s.port,
+		Handler:           s.routes(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		logger.Info(ctx, "altcha server listening on port "+s.port)
+		errCh <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		logger.Info(ctx, "shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		return srv.Shutdown(shutdownCtx)
+	}
+}
+
+func (s *Server) routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestSize(maxBodyBytes))
 	r.Use(s.corsMiddleware)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
@@ -65,10 +100,23 @@ func (s *Server) Run(ctx context.Context) {
 	r.Post(s.baseUrl+"/verify-fields", s.verifyFieldsHandler)
 	r.Post(s.baseUrl+"/verify-server-signature", s.verifyServerSignatureHandler)
 
-	logger.Info(ctx, "altcha server listening on port "+s.port)
-	if err := http.ListenAndServe(":"+s.port, r); err != nil {
-		logger.Error(ctx, err.Error())
+	return r
+}
+
+// decodeJSON reports whether v was decoded; otherwise it has already written the error response.
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	err := json.NewDecoder(r.Body).Decode(v)
+	if err == nil {
+		return true
 	}
+	slog.Debug("Failed to parse request", "error", err)
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+		return false
+	}
+	http.Error(w, "Failed to parse request", http.StatusBadRequest)
+	return false
 }
 
 func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
@@ -84,9 +132,7 @@ func (s *Server) requestHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	var payload altcha.Payload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		slog.Debug("Failed to parse Altcha payload", "error", err)
-		http.Error(w, "Failed to parse Altcha payload", http.StatusBadRequest)
+	if !decodeJSON(w, r, &payload) {
 		return
 	}
 
@@ -116,7 +162,7 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, map[string]bool{"success": true})
+	writeJSON(w, map[string]any{"success": true, "data": payload})
 }
 
 // nonceExpiry returns how long a consumed nonce must be remembered. The server
@@ -146,8 +192,7 @@ type verifyFieldsRequest struct {
 
 func (s *Server) verifyFieldsHandler(w http.ResponseWriter, r *http.Request) {
 	var req verifyFieldsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Failed to parse request", http.StatusBadRequest)
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -163,8 +208,7 @@ func (s *Server) verifyFieldsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) verifyServerSignatureHandler(w http.ResponseWriter, r *http.Request) {
 	var payload altcha.ServerSignaturePayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, "Failed to parse request", http.StatusBadRequest)
+	if !decodeJSON(w, r, &payload) {
 		return
 	}
 
