@@ -42,6 +42,9 @@ func (s *Server) Run(ctx context.Context) {
 	if s.config.Debug {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
+	if !s.config.CheckExpire {
+		logger.Warn(ctx, "ALTCHA_CHECK_EXPIRE=false: replay protection only covers ALTCHA_EXPIRE after each submission")
+	}
 
 	r := chi.NewRouter()
 
@@ -101,7 +104,7 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if verified {
-		consumed, err := s.nonces.Consume(payload.Challenge, challengeExpiry(payload))
+		consumed, err := s.nonces.Consume(payload.Challenge, s.nonceExpiry(payload))
 		if err != nil {
 			slog.Error("nonce store error", "error", err)
 			http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
@@ -116,14 +119,23 @@ func (s *Server) submitHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]bool{"success": true})
 }
 
-func challengeExpiry(payload altcha.Payload) time.Time {
-	params := altcha.ExtractParams(payload)
-	if exp := params.Get("expires"); exp != "" {
-		if unix, err := strconv.ParseInt(exp, 10, 64); err == nil {
-			return time.Unix(unix, 0)
-		}
+// nonceExpiry returns how long a consumed nonce must be remembered. The server
+// never issues challenges expiring later than now+expire, so any later value is forged.
+func (s *Server) nonceExpiry(payload altcha.Payload) time.Time {
+	limit := time.Now().Add(s.expire)
+	if !s.config.CheckExpire {
+		return limit
 	}
-	return time.Now().Add(24 * time.Hour)
+	exp := altcha.ExtractParams(payload).Get("expires")
+	unix, err := strconv.ParseInt(exp, 10, 64)
+	if err != nil {
+		return limit
+	}
+	// The library accepts a challenge until the end of its expires second.
+	if t := time.Unix(unix+1, 0); t.Before(limit) {
+		return t
+	}
+	return limit
 }
 
 type verifyFieldsRequest struct {

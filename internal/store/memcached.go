@@ -2,11 +2,14 @@ package store
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
 )
+
+const maxRelativeTTL = 30 * 24 * 60 * 60
 
 type MemcachedStore struct {
 	client *memcache.Client
@@ -25,14 +28,19 @@ func NewMemcachedStore(servers string) (*MemcachedStore, error) {
 }
 
 func (s *MemcachedStore) Consume(nonce string, expiry time.Time) (bool, error) {
-	ttl := int32(time.Until(expiry).Seconds())
+	ttl := math.Ceil(time.Until(expiry).Seconds())
 	if ttl <= 0 {
 		return false, nil
 	}
+	exp := int32(ttl)
+	// Memcached reads expirations above 30 days as absolute Unix timestamps.
+	if ttl > maxRelativeTTL {
+		exp = int32(expiry.Unix())
+	}
 	err := s.client.Add(&memcache.Item{
-		Key:        nonce,
+		Key:        keyPrefix + nonce,
 		Value:      []byte("1"),
-		Expiration: ttl,
+		Expiration: exp,
 	})
 	if err == memcache.ErrNotStored {
 		return false, nil
@@ -42,3 +50,5 @@ func (s *MemcachedStore) Consume(nonce string, expiry time.Time) (bool, error) {
 	}
 	return true, nil
 }
+
+func (s *MemcachedStore) Close() error { return s.client.Close() }

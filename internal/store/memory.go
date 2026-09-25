@@ -27,6 +27,8 @@ func (s *MemoryStore) Consume(nonce string, expiry time.Time) (bool, error) {
 	return true, nil
 }
 
+func (s *MemoryStore) Close() error { return nil }
+
 func (s *MemoryStore) cleanup(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -34,15 +36,18 @@ func (s *MemoryStore) cleanup(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			now := time.Now()
-			s.mu.Lock()
-			for nonce, expiry := range s.entries {
-				if now.After(expiry) {
-					delete(s.entries, nonce)
-				}
-			}
-			s.mu.Unlock()
+		case now := <-ticker.C:
+			s.purge(now)
+		}
+	}
+}
+
+func (s *MemoryStore) purge(now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for nonce, expiry := range s.entries {
+		if now.After(expiry) {
+			delete(s.entries, nonce)
 		}
 	}
 }

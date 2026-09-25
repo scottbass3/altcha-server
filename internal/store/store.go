@@ -9,10 +9,13 @@ import (
 	"github.com/scottbass3/altcha-server/internal/config"
 )
 
+const keyPrefix = "altcha:nonce:"
+
 // Store tracks consumed challenge nonces to prevent replay attacks.
 type Store interface {
 	// Consume registers nonce and returns false if already used.
 	Consume(nonce string, expiry time.Time) (bool, error)
+	Close() error
 }
 
 func New(ctx context.Context, cfg config.Config) (Store, error) {

@@ -34,9 +34,11 @@ func (s *RedisStore) Consume(nonce string, expiry time.Time) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// SET NX atomically sets the key only if it does not already exist.
-	set, err := s.client.SetNX(ctx, nonce, 1, ttl).Result()
+	set, err := s.client.SetNX(ctx, keyPrefix+nonce, 1, ttl).Result()
 	if err != nil {
 		return false, fmt.Errorf("redis SetNX failed: %w", err)
 	}
 	return set, nil
 }
+
+func (s *RedisStore) Close() error { return s.client.Close() }
