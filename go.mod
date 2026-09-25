@@ -1,6 +1,6 @@
 module github.com/scottbass3/altcha-server
 
-go 1.24
+go 1.26
 
 require (
 	github.com/altcha-org/altcha-lib-go v1.0.0
