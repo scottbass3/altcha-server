@@ -1,5 +1,11 @@
 package config
 
+import (
+	"fmt"
+	"strconv"
+	"time"
+)
+
 type Config struct {
 	BaseUrl           string `env:"ALTCHA_BASE_URL" envDefault:""`
 	Port              string `env:"ALTCHA_PORT" envDefault:"3333"`
@@ -16,4 +22,16 @@ type Config struct {
 	MemcachedServers  string `env:"ALTCHA_MEMCACHED_SERVERS"`
 	Debug             bool   `env:"ALTCHA_DEBUG" envDefault:"false"`
 	DisableValidation bool   `env:"ALTCHA_DISABLE_VALIDATION" envDefault:"false"`
+}
+
+// ExpireDuration parses Expire as a Go duration, or as seconds when it is a bare integer.
+func (c Config) ExpireDuration() (time.Duration, error) {
+	if secs, err := strconv.ParseInt(c.Expire, 10, 64); err == nil {
+		return time.Duration(secs) * time.Second, nil
+	}
+	d, err := time.ParseDuration(c.Expire)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ALTCHA_EXPIRE %q: %w", c.Expire, err)
+	}
+	return d, nil
 }

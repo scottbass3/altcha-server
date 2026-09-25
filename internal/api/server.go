@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/altcha-org/altcha-lib-go"
@@ -20,11 +22,14 @@ import (
 )
 
 type Server struct {
-	baseUrl string
-	port    string
-	client  client.Client
-	config  config.Config
-	nonces  store.Store
+	baseUrl     string
+	port        string
+	client      client.Client
+	config      config.Config
+	nonces      store.Store
+	expire      time.Duration
+	corsOrigins []string
+	corsAny     bool
 }
 
 func (s *Server) Run(ctx context.Context) {
@@ -163,7 +168,14 @@ func (s *Server) verifyServerSignatureHandler(w http.ResponseWriter, r *http.Req
 
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", s.config.CorsOrigins)
+		if s.corsAny {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else {
+			w.Header().Add("Vary", "Origin")
+			if origin := r.Header.Get("Origin"); origin != "" && slices.Contains(s.corsOrigins, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -187,9 +199,9 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
-	expirationDuration, err := time.ParseDuration(cfg.Expire)
+	expirationDuration, err := cfg.ExpireDuration()
 	if err != nil {
-		return nil, fmt.Errorf("invalid ALTCHA_EXPIRE value %q: %w", cfg.Expire, err)
+		return nil, err
 	}
 
 	c, err := client.New(cfg.HmacKey, cfg.MaxNumber, cfg.Algorithm, cfg.Salt, cfg.SaltLength, expirationDuration, cfg.CheckExpire)
@@ -197,10 +209,22 @@ func NewServer(cfg config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	return &Server{
+	s := &Server{
 		baseUrl: cfg.BaseUrl,
 		port:    cfg.Port,
 		client:  *c,
 		config:  cfg,
-	}, nil
+		expire:  expirationDuration,
+	}
+	for _, origin := range strings.Split(cfg.CorsOrigins, ",") {
+		origin = strings.TrimSpace(origin)
+		switch origin {
+		case "":
+		case "*":
+			s.corsAny = true
+		default:
+			s.corsOrigins = append(s.corsOrigins, origin)
+		}
+	}
+	return s, nil
 }
