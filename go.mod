@@ -3,10 +3,12 @@ module github.com/scottbass3/altcha-server
 go 1.24
 
 require (
-	github.com/altcha-org/altcha-lib-go v0.1.3
+	github.com/altcha-org/altcha-lib-go v1.0.0
+	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
 	github.com/caarlos0/env/v11 v11.2.2
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/render v1.0.3
+	github.com/redis/go-redis/v9 v9.19.0
 	github.com/urfave/cli/v2 v2.27.4
 	gitlab.com/wpetit/goweb v0.0.0-20240226160244-6b2826c79f88
 )
@@ -15,7 +17,6 @@ require (
 	cdr.dev/slog v1.6.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/lipgloss v0.13.0 // indirect
 	github.com/charmbracelet/x/ansi v0.2.3 // indirect
@@ -25,7 +26,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/redis/go-redis/v9 v9.19.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect

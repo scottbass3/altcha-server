@@ -63,14 +63,14 @@ func (c *Client) Solve(ctx context.Context, challenge string) (*altcha.Solution,
 }
 
 func (c *Client) VerifySolution(payload interface{}) (bool, error) {
-	return altcha.VerifySolution(payload, c.hmacKey, c.checkExpire)
+	return altcha.VerifySolutionSafe(payload, c.hmacKey, c.checkExpire)
 }
 
 func (c *Client) VerifyServerSignature(payload interface{}) (bool, altcha.ServerSignatureVerificationData, error) {
-	return altcha.VerifyServerSignature(payload, c.hmacKey)
+	return altcha.VerifyServerSignatureSafe(payload, c.hmacKey)
 }
 
 func (c *Client) VerifyFieldsHash(formData map[string][]string, fields []string, fieldsHash string) (bool, error) {
-	return altcha.VerifyFieldsHash(formData, fields, fieldsHash, c.algorithm)
+	return altcha.VerifyFieldsHashSafe(formData, fields, fieldsHash, c.algorithm)
 }
 
