@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/scottbass3/altcha-server/internal/command/common"
-	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/altcha-org/altcha-lib-go"
 	"github.com/caarlos0/env/v11"
+	"github.com/scottbass3/altcha-server/internal/command/common"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/urfave/cli/v2"
-	"gitlab.com/wpetit/goweb/logger"
 )
 
 func VerifyCommand() *cli.Command {
@@ -25,7 +24,6 @@ func VerifyCommand() *cli.Command {
 
 			cfg := config.Config{}
 			if err := env.Parse(&cfg); err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
@@ -39,7 +37,6 @@ func VerifyCommand() *cli.Command {
 
 			client, err := common.NewClientFromConfig(cfg)
 			if err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
@@ -53,7 +50,6 @@ func VerifyCommand() *cli.Command {
 
 			verified, err := client.VerifySolution(payload)
 			if err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 

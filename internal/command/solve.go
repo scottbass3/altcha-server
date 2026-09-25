@@ -1,13 +1,14 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/scottbass3/altcha-server/internal/command/common"
-	"github.com/scottbass3/altcha-server/internal/config"
+	"github.com/altcha-org/altcha-lib-go"
 	"github.com/caarlos0/env/v11"
+	"github.com/scottbass3/altcha-server/internal/client"
+	"github.com/scottbass3/altcha-server/internal/config"
 	"github.com/urfave/cli/v2"
-	"gitlab.com/wpetit/goweb/logger"
 )
 
 func SolveCommand() *cli.Command {
@@ -19,7 +20,6 @@ func SolveCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			cfg := config.Config{}
 			if err := env.Parse(&cfg); err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
@@ -28,16 +28,17 @@ func SolveCommand() *cli.Command {
 				cfg.Salt = salt
 			}
 
-			client, err := common.NewClientFromConfig(cfg)
+			algorithm, err := client.ParseAlgorithm(cfg.Algorithm)
 			if err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
 			}
 
-			solution, err := client.Solve(ctx.Context, challenge)
+			solution, err := altcha.SolveChallenge(challenge, cfg.Salt, algorithm, int(cfg.MaxNumber), 0, ctx.Context.Done())
 			if err != nil {
-				logger.Error(ctx.Context, err.Error())
 				return err
+			}
+			if solution == nil {
+				return errors.New("no solution found")
 			}
 
 			fmt.Printf("%+v\n", solution)

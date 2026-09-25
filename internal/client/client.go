@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -23,11 +22,9 @@ func New(hmacKey string, maxNumber int64, algorithm string, salt string, saltLen
 	if len(hmacKey) < 16 {
 		return nil, errors.New("ALTCHA_HMAC_KEY must be at least 16 characters")
 	}
-	alg := altcha.Algorithm(algorithm)
-	switch alg {
-	case altcha.SHA1, altcha.SHA256, altcha.SHA512:
-	default:
-		return nil, fmt.Errorf("unsupported algorithm %q: must be SHA-1, SHA-256, or SHA-512", algorithm)
+	alg, err := ParseAlgorithm(algorithm)
+	if err != nil {
+		return nil, err
 	}
 	return &Client{
 		hmacKey:     hmacKey,
@@ -40,9 +37,19 @@ func New(hmacKey string, maxNumber int64, algorithm string, salt string, saltLen
 	}, nil
 }
 
+func ParseAlgorithm(algorithm string) (altcha.Algorithm, error) {
+	alg := altcha.Algorithm(algorithm)
+	switch alg {
+	case altcha.SHA1, altcha.SHA256, altcha.SHA512:
+		return alg, nil
+	default:
+		return "", fmt.Errorf("unsupported algorithm %q: must be SHA-1, SHA-256, or SHA-512", algorithm)
+	}
+}
+
 func (c *Client) Generate() (altcha.Challenge, error) {
 	expiration := time.Now().Add(c.expire)
-	
+
 	options := altcha.ChallengeOptions{
 		HMACKey:    c.hmacKey,
 		MaxNumber:  c.maxNumber,
@@ -58,10 +65,6 @@ func (c *Client) Generate() (altcha.Challenge, error) {
 	return altcha.CreateChallenge(options)
 }
 
-func (c *Client) Solve(ctx context.Context, challenge string) (*altcha.Solution, error) {
-	return altcha.SolveChallenge(challenge, c.salt, c.algorithm, int(c.maxNumber), 0, ctx.Done())
-}
-
 func (c *Client) VerifySolution(payload interface{}) (bool, error) {
 	return altcha.VerifySolutionSafe(payload, c.hmacKey, c.checkExpire)
 }
@@ -73,4 +76,3 @@ func (c *Client) VerifyServerSignature(payload interface{}) (bool, altcha.Server
 func (c *Client) VerifyFieldsHash(formData map[string][]string, fields []string, fieldsHash string) (bool, error) {
 	return altcha.VerifyFieldsHashSafe(formData, fields, fieldsHash, c.algorithm)
 }
-

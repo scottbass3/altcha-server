@@ -28,7 +28,7 @@ build-altcha: ## Build executable
 		./cmd/altcha
 
 run:
-	bin/altcha $(ATLCHA_CMD)
+	bin/altcha $(ALTCHA_CMD)
 
 .PHONY: goreleaser
 goreleaser:
